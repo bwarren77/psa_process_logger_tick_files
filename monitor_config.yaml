@@ -68,6 +68,21 @@ output:
   # Update frequency for output files
   output_update_interval: 300  # 5 minutes (same as check interval)
 
+  # Daily failure escalation settings
+  daily_escalation:
+    enabled: true
+    xml_path: "./output/daily_failure_escalation.xml"
+    state_path: "./output/escalation_state.json"
+
+    # Time to reset daily tracking (24-hour format)
+    reset_time: "05:00"  # 5:00 AM
+
+    # Timezone for process scheduling
+    timezone: "America/New_York"
+
+    # Minutes after expected completion to show stale data warning
+    stale_warning_minutes: 60
+
 # ==============================================================================
 # LOGGING SETTINGS
 # ==============================================================================

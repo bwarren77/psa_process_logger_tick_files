@@ -229,7 +229,8 @@ class MonitorService:
         """Initialize output generator."""
         try:
             output_config = self.config.get('output', {})
-            self.output_generator = OutputGenerator(output_config, self.logger)
+            processes_config = self.config.get('processes', {})
+            self.output_generator = OutputGenerator(output_config, processes_config, self.logger)
             self.logger.info("Output generator initialized")
         except Exception as e:
             self.logger.error(f"Failed to initialize output generator: {e}", exc_info=True)

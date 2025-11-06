@@ -35,6 +35,8 @@ from typing import List, Dict, Any, Optional
 import logging
 import shutil
 
+from framework.daily_escalation_generator import DailyEscalationGenerator
+
 
 class OutputGenerator:
     """
@@ -50,15 +52,18 @@ class OutputGenerator:
     - Alert summaries
     """
 
-    def __init__(self, config: Dict[str, Any], logger: Optional[logging.Logger] = None):
+    def __init__(self, config: Dict[str, Any], processes_config: Dict[str, Any] = None,
+                 logger: Optional[logging.Logger] = None):
         """
         Initialize Output Generator.
 
         Args:
             config: Output configuration from YAML
+            processes_config: Process definitions from YAML (for daily escalation)
             logger: Logger instance (optional)
         """
         self.config = config
+        self.processes_config = processes_config or {}
         self.logger = logger or logging.getLogger(self.__class__.__name__)
 
         # Extract configuration
@@ -70,6 +75,18 @@ class OutputGenerator:
         self.archive_enabled = config.get('archive_enabled', True)
         self.archive_path = Path(config.get('archive_path', './output/archive/'))
         self.archive_retention_days = config.get('archive_retention_days', 30)
+
+        # Initialize daily escalation generator if enabled
+        self.daily_escalation = None
+        escalation_config = config.get('daily_escalation', {})
+        if escalation_config.get('enabled', False) and self.processes_config:
+            try:
+                self.daily_escalation = DailyEscalationGenerator(
+                    config, self.processes_config, self.logger
+                )
+                self.logger.info("Daily escalation generator enabled")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize daily escalation: {e}", exc_info=True)
 
         # Ensure output directories exist
         self._ensure_directories()
@@ -111,6 +128,15 @@ class OutputGenerator:
             # Generate JSON (for debugging/alternative use)
             json_file = self.generate_json(health_scores)
             output_files['json'] = str(json_file)
+
+            # Generate daily failure escalation XML (if enabled)
+            if self.daily_escalation:
+                try:
+                    escalation_file = self.daily_escalation.generate_daily_escalation_xml(health_scores)
+                    output_files['daily_escalation_xml'] = str(escalation_file)
+                    self.logger.info("Daily escalation XML generated successfully")
+                except Exception as e:
+                    self.logger.error(f"Failed to generate daily escalation XML: {e}", exc_info=True)
 
             # Archive old outputs
             if self.archive_enabled:
