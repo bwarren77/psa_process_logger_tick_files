@@ -1,0 +1,413 @@
+# ==============================================================================
+# Process Monitoring Framework Configuration
+# ==============================================================================
+# This configuration file defines the monitoring parameters, thresholds, and
+# process definitions for the ETL Process Health Monitoring Framework.
+#
+# The framework is designed to be extensible - new processes can be added by:
+# 1. Adding a new entry under 'processes'
+# 2. Defining thresholds specific to that process
+# 3. The framework will automatically monitor it
+
+# ==============================================================================
+# DATABASE CONNECTION SETTINGS
+# ==============================================================================
+database:
+  # Oracle database connection parameters
+  host: "localhost"
+  port: 1521
+  service_name: "ORCL"
+  username: "etl_monitor"
+  password: "${DB_PASSWORD}"  # Use environment variable for security
+
+  # Connection pool settings
+  pool_min: 2
+  pool_max: 10
+  pool_increment: 1
+
+# ==============================================================================
+# MONITORING SETTINGS
+# ==============================================================================
+monitoring:
+  # How often to check the database (in seconds)
+  check_interval: 300  # 5 minutes
+
+  # Lookback window for analysis (in days)
+  lookback_days: 90
+
+  # Recent activity window (in days) - for immediate alerts
+  recent_days: 2
+
+  # Enable/disable specific monitoring features
+  features:
+    failure_detection: true
+    frequency_monitoring: true
+    volume_anomaly_detection: true
+    duration_monitoring: true
+    dependency_tracking: true
+    message_analysis: true
+
+# ==============================================================================
+# OUTPUT SETTINGS
+# ==============================================================================
+output:
+  # XML output file path (Power BI data source)
+  xml_path: "./output/process_health.xml"
+
+  # Detailed XML output (includes all individual checks)
+  xml_detailed_path: "./output/process_health_detailed.xml"
+
+  # JSON output (for debugging/alternative consumption)
+  json_path: "./output/process_health.json"
+
+  # Archive old outputs (keeps history)
+  archive_enabled: true
+  archive_path: "./output/archive/"
+  archive_retention_days: 30
+
+  # Update frequency for output files
+  output_update_interval: 300  # 5 minutes (same as check interval)
+
+# ==============================================================================
+# LOGGING SETTINGS
+# ==============================================================================
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file_path: "./logs/process_monitor.log"
+  max_file_size_mb: 100
+  backup_count: 5
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # Separate error log
+  error_log_path: "./logs/process_monitor_errors.log"
+
+# ==============================================================================
+# ALERTING SETTINGS
+# ==============================================================================
+alerting:
+  enabled: true
+
+  # Email settings (optional)
+  email:
+    enabled: false
+    smtp_host: "smtp.company.com"
+    smtp_port: 587
+    from_address: "etl-monitor@company.com"
+    to_addresses:
+      - "data-team@company.com"
+      - "ops-team@company.com"
+    subject_prefix: "[ETL Monitor]"
+
+  # Webhook settings (for Slack, Teams, etc.)
+  webhook:
+    enabled: false
+    url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+  # Alert throttling (prevent alert spam)
+  throttle_minutes: 60  # Don't send same alert more than once per hour
+
+# ==============================================================================
+# PROCESS DEFINITIONS
+# ==============================================================================
+# Each process group defines a collection of related processes to monitor
+# New process groups can be added here to extend the framework
+
+processes:
+
+  # --------------------------------------------------------------------------
+  # TICK FILE PROCESSES
+  # --------------------------------------------------------------------------
+  tick_files:
+    enabled: true
+    description: "Tick file ETL processes - 9 parallel processes"
+
+    # Database table to monitor
+    table_name: "PROCESS_LOG_TICKS"
+
+    # Process identification
+    process_ids: [603, 839, 840, 841, 842, 843, 844, 845, 846]
+    process_names:
+      - "Tick1 File"
+      - "Tick2 File"
+      - "Tick3 File"
+      - "Tick4 File"
+      - "Tick5 File"
+      - "Tick6 File"
+      - "Tick7 File"
+      - "Tick8 File"
+      - "Tick9 File"
+
+    # Expected execution pattern
+    schedule:
+      frequency: "daily"  # daily, hourly, weekly
+      expected_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+      expected_time_window:
+        start: "06:00"
+        end: "09:00"
+      timezone: "America/New_York"
+
+    # Execution frequency thresholds
+    frequency_thresholds:
+      min_runs_per_day: 0.9  # At least 0.9 runs per active day
+      max_runs_per_day: 1.5  # At most 1.5 runs per active day
+      max_days_without_run: 2  # Alert if no run for 2+ weekdays
+      min_coverage_percentage: 65.0  # At least 65% of expected days
+
+    # Data volume thresholds (based on statistical analysis)
+    volume_thresholds:
+      metric_name: "Inserted records"
+      stat_column: "STAT_VALUE_1"
+
+      # Baseline values (will be calculated dynamically, these are initial)
+      baseline_median: 5000000
+      baseline_stddev: 2000000
+
+      # Deviation thresholds
+      warning_stddev_multiplier: 2.0  # Warn if > 2 standard deviations
+      critical_stddev_multiplier: 3.0  # Critical if > 3 standard deviations
+
+      # Percentage thresholds
+      warning_decrease_pct: 50.0  # Warn if 50% below baseline
+      critical_decrease_pct: 80.0  # Critical if 80% below baseline
+      warning_increase_pct: 200.0  # Warn if 200% above baseline
+      critical_increase_pct: 300.0  # Critical if 300% above baseline
+
+      # Zero records handling
+      zero_records_critical: false  # Don't alert on zero (might be valid)
+
+    # File size monitoring
+    file_size_thresholds:
+      metric_name: "File size (bytes)"
+      stat_column: "STAT_VALUE_1"
+      warning_decrease_pct: 50.0
+      warning_increase_pct: 200.0
+
+    # Execution time thresholds (in seconds)
+    duration_thresholds:
+      enabled: false  # Disabled until duration parsing is fixed
+      warning_multiplier: 2.0  # Warn if 2x median
+      critical_multiplier: 3.0  # Critical if 3x median
+      max_duration_seconds: 3600  # Hard limit: 1 hour
+
+    # Success rate thresholds
+    success_thresholds:
+      warning_rate: 95.0  # Warn if success rate < 95%
+      critical_rate: 90.0  # Critical if success rate < 90%
+      min_sample_size: 10  # Need at least 10 runs to calculate
+
+    # Message pattern thresholds
+    message_thresholds:
+      max_error_percentage: 1.0  # Alert if >1% ERROR messages
+      max_warning_percentage: 5.0  # Alert if >5% WARNING messages
+      consecutive_failures_critical: 3  # Critical after 3 consecutive failures
+
+    # Pre/Post processing checks
+    preprocessing_checks:
+      enabled: true
+      check_preprocess: "PREPROCESS_TICK_FILE"
+      check_postprocess: "POSTPROCESS_TICK_FILE"
+      stat_column: "STAT_VALUE_NAME_3"
+
+    # Health score weights (must sum to 1.0)
+    health_weights:
+      success_rate: 0.30
+      frequency: 0.20
+      volume_consistency: 0.20
+      duration: 0.10
+      message_quality: 0.10
+      preprocessing: 0.10
+
+  # --------------------------------------------------------------------------
+  # MQ SUMMARY PROCESSES
+  # --------------------------------------------------------------------------
+  mq_summary:
+    enabled: true
+    description: "Market Quote summary ETL processes - sequential pipeline"
+
+    # Database table to monitor
+    table_name: "PROCESS_LOG_MQ_SUMMARY"
+
+    # Process identification
+    process_ids: [438, 441, 442, 443]
+    process_names:
+      - "MQ Load FCT_BID_ASK"
+      - "MQ Load FCT_TRADE"
+      - "MQ Load Summary"
+      - "MQ Load Summary Part 2"
+
+    # Process dependencies (sequential pipeline)
+    dependencies:
+      enabled: true
+      pipeline_order: [438, 441, 442, 443]  # Must execute in this order
+      max_time_gap_minutes: 60  # Max time between sequential processes
+
+    # Expected execution pattern
+    schedule:
+      frequency: "daily"
+      expected_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+      expected_time_window:
+        start: "09:00"
+        end: "18:00"
+      timezone: "America/New_York"
+
+    # Execution frequency thresholds
+    frequency_thresholds:
+      min_runs_per_day: 0.9
+      max_runs_per_day: 2.0  # Allow up to 2 runs (reprocessing)
+      max_days_without_run: 2
+      min_coverage_percentage: 65.0
+
+    # Data operation thresholds
+    operation_thresholds:
+      # Inserts
+      inserts:
+        metric_name: "Rows Inserted"
+        stat_column: "STAT_VALUE_1"
+        warning_decrease_pct: 50.0
+        critical_decrease_pct: 80.0
+        warning_increase_pct: 200.0
+        critical_increase_pct: 400.0
+
+      # Updates
+      updates:
+        metric_name: "Rows Updated"
+        stat_column: "STAT_VALUE_1"
+        warning_decrease_pct: 70.0
+        warning_increase_pct: 300.0
+
+      # Deletes
+      deletes:
+        metric_name: "Rows Deleted"
+        stat_column: "STAT_VALUE_1"
+        warning_increase_pct: 200.0  # Alert if deletes spike
+        critical_increase_pct: 400.0
+
+      # Ratio checks
+      delete_insert_ratio:
+        warning_ratio: 2.0  # Warn if deletes > 2x inserts
+        critical_ratio: 5.0  # Critical if deletes > 5x inserts
+
+    # Execution time thresholds (MQ processes are more variable)
+    duration_thresholds:
+      enabled: false  # Disabled until duration parsing is fixed
+      warning_multiplier: 3.0  # More lenient for MQ processes
+      critical_multiplier: 5.0
+      max_duration_seconds: 7200  # Hard limit: 2 hours
+
+      # Process-specific overrides
+      process_specific:
+        443:  # MQ Load Summary Part 2 takes longer
+          max_duration_seconds: 10800  # 3 hours
+
+    # Success rate thresholds (very high for MQ processes)
+    success_thresholds:
+      warning_rate: 98.0  # Warn if success rate < 98%
+      critical_rate: 95.0  # Critical if success rate < 95%
+      min_sample_size: 10
+
+    # Message pattern thresholds
+    message_thresholds:
+      max_error_percentage: 0.5  # Stricter for MQ processes
+      max_warning_percentage: 3.0
+      consecutive_failures_critical: 2  # More sensitive
+
+    # Health score weights
+    health_weights:
+      success_rate: 0.35  # Higher weight on success
+      frequency: 0.20
+      volume_consistency: 0.15
+      duration: 0.10
+      message_quality: 0.10
+      dependency_integrity: 0.10  # Unique to sequential processes
+
+# ==============================================================================
+# HEALTH SCORING SYSTEM
+# ==============================================================================
+health_scoring:
+  # Overall health score calculation
+  score_range:
+    min: 0
+    max: 100
+
+  # Health status categories
+  status_thresholds:
+    excellent: 95  # 95-100
+    good: 85       # 85-94
+    fair: 70       # 70-84
+    poor: 50       # 50-69
+    critical: 0    # 0-49
+
+  # Aggregation method for multiple processes
+  aggregation_method: "weighted_average"  # weighted_average, minimum, average
+
+  # Trend analysis
+  trend_analysis:
+    enabled: true
+    lookback_periods: 7  # Look at last 7 checks
+    trend_threshold: 5.0  # Alert if declining >5 points per period
+
+# ==============================================================================
+# ADVANCED FEATURES
+# ==============================================================================
+advanced:
+  # Machine learning anomaly detection (future enhancement)
+  ml_anomaly_detection:
+    enabled: false
+    model_path: "./models/anomaly_detector.pkl"
+    retrain_interval_days: 30
+
+  # Predictive alerting (future enhancement)
+  predictive_alerting:
+    enabled: false
+    forecast_periods: 3
+
+  # Auto-adjustment of thresholds based on historical data
+  adaptive_thresholds:
+    enabled: true
+    update_interval_days: 7
+    min_data_points: 30
+
+  # Performance optimization
+  caching:
+    enabled: true
+    cache_duration_seconds: 600  # 10 minutes
+
+  # Parallel processing for multiple process groups
+  parallel_processing:
+    enabled: true
+    max_workers: 4
+
+# ==============================================================================
+# EXTENSIBILITY EXAMPLES
+# ==============================================================================
+# To add a new process group, copy the template below and customize:
+#
+# new_process_group:
+#   enabled: true
+#   description: "Description of this process group"
+#   table_name: "PROCESS_LOG_TABLE_NAME"
+#   process_ids: [101, 102, 103]
+#   process_names:
+#     - "Process 1"
+#     - "Process 2"
+#     - "Process 3"
+#   schedule:
+#     frequency: "daily"
+#     expected_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+#   frequency_thresholds:
+#     min_runs_per_day: 1.0
+#     max_runs_per_day: 1.0
+#     max_days_without_run: 1
+#   volume_thresholds:
+#     metric_name: "Your Metric Name"
+#     stat_column: "STAT_VALUE_1"
+#     baseline_median: 1000
+#     warning_decrease_pct: 50.0
+#   success_thresholds:
+#     warning_rate: 95.0
+#     critical_rate: 90.0
+#   health_weights:
+#     success_rate: 0.40
+#     frequency: 0.30
+#     volume_consistency: 0.30
+# ==============================================================================

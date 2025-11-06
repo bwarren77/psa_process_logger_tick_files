@@ -1,0 +1,50 @@
+# ==============================================================================
+# ETL Process Health Monitoring Framework - Requirements
+# ==============================================================================
+
+# Core dependencies
+pyyaml>=6.0.1              # Configuration file parsing
+pandas>=2.0.0              # Data analysis and manipulation
+numpy>=1.23.0              # Numerical computing
+openpyxl>=3.1.0            # Excel file reading (for mock data)
+
+# Database connectivity (Oracle)
+# Uncomment when deploying to production with Oracle database
+# cx-Oracle>=8.3.0          # Oracle database driver
+
+# Optional dependencies for enhanced features
+
+# Email alerting (optional)
+# smtplib is built-in, no external dependency needed
+
+# Webhook alerting (optional)
+requests>=2.31.0           # HTTP library for webhooks
+
+# Performance monitoring (optional)
+# psutil>=5.9.0             # System and process utilities
+
+# Machine learning for anomaly detection (future enhancement)
+# scikit-learn>=1.3.0       # Machine learning library
+
+# ==============================================================================
+# Development dependencies (optional, for development environment only)
+# ==============================================================================
+
+# Testing
+# pytest>=7.4.0             # Testing framework
+# pytest-cov>=4.1.0         # Coverage plugin
+
+# Code quality
+# pylint>=2.17.0            # Code analysis
+# black>=23.7.0             # Code formatter
+# mypy>=1.5.0               # Type checking
+
+# Documentation
+# sphinx>=7.1.0             # Documentation generator
+# sphinx-rtd-theme>=1.3.0   # Read the Docs theme
+
+# ==============================================================================
+# Python Version Requirement
+# ==============================================================================
+# Python 3.8 or higher required
+# Tested on Python 3.11
